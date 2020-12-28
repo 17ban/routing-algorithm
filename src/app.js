@@ -27,7 +27,7 @@ class RouterMap {
         for(let i = 0; i < nodeAmount; i++) {
             let x = Math.random() * 500
             let y = Math.random() * 500
-            let router = new Router(`Node-${i}`, x, y)
+            let router = new Router(`R${i}`, x, y)
             this.routers.push(router)
         }
         for(let i = 0; i < this.routers.length; i++) {
@@ -50,9 +50,10 @@ const zr = zrender.init(document.getElementById('main-canvas'))
 //创建 RouterMap
 const rm = new RouterMap()
 
-//绘制每个 Router
+//遍历每个 Router
 rm.routers.forEach(router => {
-    zr.add(new zrender.Circle({
+    //绘制 Router
+    let circular = new zrender.Circle({
         shape: {
             cx: router.x,
             cy: router.y,
@@ -61,10 +62,22 @@ rm.routers.forEach(router => {
         style: {
             fill: '#01DF01',
             stroke: '#01DF01'
-        }
-    }))
+        },
+        zlevel: 10
+    })
+    //处理 Router 点击事件
+    circular.on('click', (event) => {
+        console.info(
+            `Router Name: ${router.name}\n` + 
+            `x: ${router.x}\n` +
+            `y: ${router.y}\n`
+        )
+    })
+    zr.add(circular)
+
+    //绘制 Router 之间的连线
     router.neighbours.forEach(neighbour => {
-        zr.add(new zrender.Line({
+        let line = new zrender.Line({
             style: {
                 stroke: '#48DD22'
             },
@@ -74,6 +87,13 @@ rm.routers.forEach(router => {
                 x2: neighbour.router.x,
                 y2: neighbour.router.y
             }
-        }))
+        })
+        //处理连线的点击事件
+        line.on('click', (event) => {
+            console.info(
+                `distance: ${neighbour.dist}`
+            )
+        })
+        zr.add(line)
     })
 })
