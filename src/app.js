@@ -27,3 +27,17 @@ class RouterMap {
         }
     }
 }
+
+
+const zr = zrender.init(document.getElementById('main-canvas'))
+zr.add(new zrender.Circle({
+    shape: {
+        cx: 150,
+        cy: 50,
+        r: 20
+    },
+    style: {
+        fill: 'none',
+        stroke: '#F00'
+    }
+}))
