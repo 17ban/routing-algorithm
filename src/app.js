@@ -1,5 +1,14 @@
+class Neighbour {
+    constructor(router, dist) {
+        this.router = router
+        this.dist = dist
+    }
+}
+
 class Router {
-    radius = 50
+    static radius = 128
+
+    neighbours = []
     constructor(name, x, y) {
         this.name = name
         this.x = x
@@ -7,23 +16,30 @@ class Router {
     }
 }
 
-function euclideanDistance(node_A, node_B) {
-    return Math.sqrt((node_A.x - node_B.x) ** 2 + (node_A.y - node_B.y) ** 2)
-}
-
-function dist(node_A, node_B) {
-    return euclideanDistance(node_A, node_B)
+function geometryDist(r1, r2) {
+    return Math.sqrt((r1.x - r2.x) ** 2 + (r1.y - r2.y) ** 2)
 }
 
 class RouterMap {
     routers = []
 
-    constructor(nodeAmount = 16) {
+    constructor(nodeAmount = 32) {
         for(let i = 0; i < nodeAmount; i++) {
             let x = Math.random() * 500
             let y = Math.random() * 500
             let router = new Router(`Node-${i}`, x, y)
             this.routers.push(router)
+        }
+        for(let i = 0; i < this.routers.length; i++) {
+            for(let j = i + 1; j < this.routers.length; j++) {
+                let r1 = this.routers[i]
+                let r2 = this.routers[j]
+                let dist = geometryDist(r1, r2)
+                if(dist < Router.radius) {
+                    r1.neighbours.push(new Neighbour(r2, dist))
+                    r2.neighbours.push(new Neighbour(r1, dist))
+                }
+            }
         }
     }
 }
@@ -40,12 +56,24 @@ rm.routers.forEach(router => {
         shape: {
             cx: router.x,
             cy: router.y,
-            r: 8
+            r: 5
         },
         style: {
             fill: '#01DF01',
             stroke: '#01DF01'
-        },
-        draggable: true
+        }
     }))
+    router.neighbours.forEach(neighbour => {
+        zr.add(new zrender.Line({
+            style: {
+                stroke: '#48DD22'
+            },
+            shape: {
+                x1: router.x,
+                y1: router.y,
+                x2: neighbour.router.x,
+                y2: neighbour.router.y
+            }
+        }))
+    })
 })
