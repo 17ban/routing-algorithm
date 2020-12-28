@@ -16,28 +16,36 @@ function dist(node_A, node_B) {
 }
 
 class RouterMap {
-    nodes = []
+    routers = []
 
-    constructor(nodeAmount = 10) {
+    constructor(nodeAmount = 16) {
         for(let i = 0; i < nodeAmount; i++) {
             let x = Math.random() * 500
             let y = Math.random() * 500
-            let node = new Router(`Node-${i}`, x, y)
-            this.nodes.push(node)
+            let router = new Router(`Node-${i}`, x, y)
+            this.routers.push(router)
         }
     }
 }
 
 
+//初始化 ZRender 实例
 const zr = zrender.init(document.getElementById('main-canvas'))
-zr.add(new zrender.Circle({
-    shape: {
-        cx: 150,
-        cy: 50,
-        r: 20
-    },
-    style: {
-        fill: 'none',
-        stroke: '#F00'
-    }
-}))
+//创建 RouterMap
+const rm = new RouterMap()
+
+//绘制每个 Router
+rm.routers.forEach(router => {
+    zr.add(new zrender.Circle({
+        shape: {
+            cx: router.x,
+            cy: router.y,
+            r: 8
+        },
+        style: {
+            fill: '#01DF01',
+            stroke: '#01DF01'
+        },
+        draggable: true
+    }))
+})
