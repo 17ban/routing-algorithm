@@ -6,7 +6,7 @@ class Neighbour {
 }
 
 class Router {
-    static radius = 200
+    static radius = 100
 
     constructor(name, x, y) {
         this.name = name
@@ -104,7 +104,7 @@ class RouterMap {
             throw new Error(`Can't find Element by selector '${canvasSelector}'.`)
     }
 
-    init(nodeAmount = 10) {
+    init(nodeAmount = 50) {
         this.routers = []
         //随机生成 Router
         for(let i = 0; i < nodeAmount; i++) {
@@ -132,6 +132,15 @@ class RouterMap {
             router.pushLSDB()
         })
 
+
+        //绘图相关状态
+        let status = 0
+        let startRouter = null
+        let endRouter = null
+        let route = null
+        const circularMap = {}
+        const lineMap = {}
+
         //绘图
         this.zrenderInst.clear()
         this.routers.forEach(router => {
@@ -148,6 +157,22 @@ class RouterMap {
                 },
                 zlevel: 10
             })
+            circular.turnRed = function() {
+                this.attr({
+                    style: {
+                        fill: '#FF0000',
+                        stroke: '#FF0000'
+                    }
+                })
+            }
+            circular.turnGreen = function() {
+                this.attr({
+                    style: {
+                        fill: '#01DF01',
+                        stroke: '#01DF01'
+                    }
+                })
+            }
             //处理 Router 点击事件
             circular.on('click', (event) => {
                 console.info(
@@ -155,11 +180,49 @@ class RouterMap {
                     `x: ${router.x}\n` +
                     `y: ${router.y}\n`
                 )
+                if(status === 0) {
+                    status = 1
+                    startRouter = router
+                    circular.turnRed()
+                } else if(status === 1) {
+                    status = 2
+                    endRouter = router
+                    circularMap[startRouter.name].turnGreen()
+                    route = startRouter.routeTo(endRouter)
+                    for(let i = 0; i < route.length; i++) {
+                        let r = route[i]
+                        let next = route[i + 1]
+                        circularMap[r.name].turnRed()
+                        if(next) {
+                            lineMap[`${r.name}-${next.name}`].turnRed()
+                        }
+                    }
+                    route.forEach(r => {
+                        circularMap[r.name].turnRed()
+                    })
+                } else if(status === 2) {
+                    status = 1
+                    for(let i = 0; i < route.length; i++) {
+                        let r = route[i]
+                        let next = route[i + 1]
+                        circularMap[r.name].turnGreen()
+                        if(next) {
+                            lineMap[`${r.name}-${next.name}`].turnGreen()
+                        }
+                    }
+                    startRouter = router
+                    circular.turnRed()
+                }
             })
+            circularMap[router.name] = circular
             this.zrenderInst.add(circular)
 
             //绘制 Router 之间的连线
             router.neighbours.forEach(neighbour => {
+                //检查连线是否已经生成，是则不再生成新的连线
+                if(lineMap[`${router.name}-${neighbour.router.name}`])
+                    return
+
                 let line = new zrender.Line({
                     style: {
                         stroke: '#48DD22'
@@ -171,12 +234,28 @@ class RouterMap {
                         y2: neighbour.router.y
                     }
                 })
+                line.turnRed = function() {
+                    this.attr({
+                        style: {
+                            stroke: '#FF3333'
+                        }
+                    })
+                }
+                line.turnGreen = function() {
+                    this.attr({
+                        style: {
+                            stroke: '#48DD22'
+                        }
+                    })
+                }
                 //处理连线的点击事件
                 line.on('click', (event) => {
                     console.info(
                         `distance: ${neighbour.dist}`
                     )
                 })
+                lineMap[`${router.name}-${neighbour.router.name}`] = line
+                lineMap[`${neighbour.router.name}-${router.name}`] = line
                 this.zrenderInst.add(line)
             })
         })
