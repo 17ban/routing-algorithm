@@ -10,44 +10,46 @@
         <canvas id="main-canvas" width="500" height="500"></canvas>
         <br>
         <button onclick="reset();">随机重置</button>
+    </div>
 
+    <div id="sub-view">
         <div id="start-router">
-            <p>
-                起点：
-            </p>
+            <strong>起点：</strong><br>
             <p id="start-router-digest">
                 尚未选择
             </p>
         </div>
 
         <div id="end-router">
-            <p>
-                终点：
-            </p>
+            <strong>终点：</strong><br>
             <p id="end-router-digest">
                 尚未选择
             </p>
         </div>
 
         <div id="route">
-            <p>
-                最优路径：
-            </p>
+            <strong>最优路径：</strong><br>
             <p id="route-digest">
                 请选择起点与终点
             </p>
         </div>
-
     </div>
     
     <style>
-        #main-view {
-            margin: 50px;
+        body {
+            display: flex;
         }
-        
+        #main-view, #sub-view {
+            margin: 30px;
+        }
         #main-canvas {
             background-color: rgb(213, 238, 255);
         }
+        #start-router, #end-router, #route {
+            height: 120px;
+            margin: 20px;
+        }
+
     </style>
     <script src="./src/app.js"></script>
 </body>

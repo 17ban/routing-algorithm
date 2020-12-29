@@ -39,6 +39,10 @@ function updateDOM(target) {
     }
 }
 
+function geometryDist(r1, r2) {
+    return Math.sqrt((r1.x - r2.x) ** 2 + (r1.y - r2.y) ** 2)
+}
+
 class Neighbour {
     constructor(router, dist) {
         this.router = router
@@ -191,7 +195,17 @@ class RouterMap {
                     style: {
                         fill: '#FF0000',
                         stroke: '#FF0000'
-                    }
+                    },
+                    zlevel: 20
+                })
+            }
+            circular.turnBlue = function() {
+                this.attr({
+                    style: {
+                        fill: '#2222FF',
+                        stroke: '#2222FF'
+                    },
+                    zlevel: 20
                 })
             }
             circular.turnGreen = function() {
@@ -199,7 +213,8 @@ class RouterMap {
                     style: {
                         fill: '#01DF01',
                         stroke: '#01DF01'
-                    }
+                    },
+                    zlevel: 10
                 })
             }
             //处理 Router 点击事件
@@ -217,15 +232,20 @@ class RouterMap {
                     status = 2
                     endRouter = router
                     route = startRouter.routeTo(endRouter)
-                    //先取消对起点的高亮显示
-                    circularMap[startRouter.name].turnGreen()
-                    //再对路径上所有的点与线进行高亮显示
-                    for(let i = 0; i < route.length; i++) {
-                        let r = route[i]
-                        let next = route[i + 1]
-                        circularMap[r.name].turnRed()
-                        if(next) {
-                            lineMap[`${r.name}-${next.name}`].turnRed()
+                    //如果没有通路，则对起点和终点蓝色高亮
+                    if(route.length === 0) {
+                        circularMap[startRouter.name].turnBlue()
+                        circularMap[endRouter.name].turnBlue()
+                    }
+                    //如果有通路，则对路径上所有点和线红色高亮
+                    else {
+                        for(let i = 0; i < route.length; i++) {
+                            let r = route[i]
+                            let next = route[i + 1]
+                            circularMap[r.name].turnRed()
+                            if(next) {
+                                lineMap[`${r.name}-${next.name}`].turnRed()
+                            }
                         }
                     }
                     //更新DOM
@@ -233,12 +253,17 @@ class RouterMap {
                     updateDOM('route')
                 } else if(status === 2) {
                     //高亮路径恢复为普通颜色
-                    for(let i = 0; i < route.length; i++) {
-                        let r = route[i]
-                        let next = route[i + 1]
-                        circularMap[r.name].turnGreen()
-                        if(next) {
-                            lineMap[`${r.name}-${next.name}`].turnGreen()
+                    if(route.length === 0) {
+                        circularMap[startRouter.name].turnGreen()
+                        circularMap[endRouter.name].turnGreen()
+                    } else {
+                        for(let i = 0; i < route.length; i++) {
+                            let r = route[i]
+                            let next = route[i + 1]
+                            circularMap[r.name].turnGreen()
+                            if(next) {
+                                lineMap[`${r.name}-${next.name}`].turnGreen()
+                            }
                         }
                     }
                     //再对新的起点进行高亮显示
@@ -278,14 +303,16 @@ class RouterMap {
                     this.attr({
                         style: {
                             stroke: '#FF3333'
-                        }
+                        },
+                        zlevel: 15
                     })
                 }
                 line.turnGreen = function() {
                     this.attr({
                         style: {
                             stroke: '#48DD22'
-                        }
+                        },
+                        zlevel: 0
                     })
                 }
                 //处理连线的点击事件
@@ -306,10 +333,6 @@ class RouterMap {
 const rm = new RouterMap('#main-canvas')
 //初始化 RouterMap
 rm.init()
-
-function geometryDist(r1, r2) {
-    return Math.sqrt((r1.x - r2.x) ** 2 + (r1.y - r2.y) ** 2)
-}
 
 window.reset = () => {
     //重置状态
