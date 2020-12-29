@@ -259,7 +259,7 @@ class Router {
                     updatedFlag = true
                 }
             }
-            //下一跳不同，且新状态可以使距离缩短时
+            //下一跳不同，且新路由项可以缩短距离
             else if(newDist < targetRouteItem[1]) {
                 //更新距离与下一跳
                 targetRouteItem[1] = newDist
