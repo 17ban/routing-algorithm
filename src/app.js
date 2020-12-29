@@ -6,17 +6,85 @@ class Neighbour {
 }
 
 class Router {
-    static radius = 128
+    static radius = 200
 
-    neighbours = []
     constructor(name, x, y) {
         this.name = name
         this.x = x
         this.y = y
     }
 
+    linkStateDataBase = []
+    neighbours = []
     addNeighbour(neighbourRouter, dist) {
         this.neighbours.push(new Neighbour(neighbourRouter, dist))
+        this.linkStateDataBase.push([neighbourRouter, dist, neighbourRouter])
+    }
+    pushLSDB() {
+        this.neighbours.forEach(neighbour => {
+            neighbour.router.updateLSDB(this.linkStateDataBase, this)
+        })
+    }
+    updateLSDB(LSDB, from) {
+        let updatedFlag = false
+
+        //查找到更新路由的距离
+        let distToFrom = this.neighbours.find(n => n.router === from).dist
+
+        //更新记录
+        LSDB.forEach(stateItem => {
+            let targetRouter = stateItem[0]
+            if(targetRouter === this) {
+                return
+            }
+            
+            let targetStateItem = this.linkStateDataBase.find(oldStateItem => oldStateItem[0] === targetRouter)
+            //目标路由已有记录
+            if(targetStateItem) {
+                let newDist = stateItem[1] + distToFrom
+                //下一跳相同
+                if(targetStateItem[2] === from) {
+                    //若距离发生改变，更新距离
+                    if(Math.abs(targetStateItem[1] - newDist) > 1e-9) {
+                        targetStateItem[1] = newDist
+                        updatedFlag = true
+                    }
+                }
+                //下一跳不同，且新状态可以使距离缩短时
+                else if(newDist < targetStateItem[1]) {
+                    //更新距离与下一跳
+                    targetStateItem[1] = newDist
+                    targetStateItem[2] = from
+                    updatedFlag = true
+                }
+            }
+            //目标路由尚无记录
+            else {
+                //新建记录
+                this.linkStateDataBase.push([targetRouter, stateItem[1] + distToFrom, from])
+                updatedFlag = true
+            }
+        })
+
+        //若有更新，则向邻居路由推送新状态
+        if(updatedFlag) {
+            //console.log(`${this.name} updated.`)
+            this.pushLSDB()
+        } else {
+            //console.log(`${this.name} LSDB clean.`)
+        }
+    }
+    routeTo(targetRouter) {
+        if(targetRouter === this) {
+            return [this]
+        }
+        let stateItem = this.linkStateDataBase.find(i => i[0] === targetRouter)
+        if(!stateItem) {
+            return []
+        }
+        let route = [this]
+        route.push(...stateItem[2].routeTo(targetRouter))
+        return route
     }
 }
 
@@ -36,7 +104,7 @@ class RouterMap {
             throw new Error(`Can't find Element by selector '${canvasSelector}'.`)
     }
 
-    init(nodeAmount = 32) {
+    init(nodeAmount = 10) {
         this.routers = []
         //随机生成 Router
         for(let i = 0; i < nodeAmount; i++) {
@@ -58,6 +126,11 @@ class RouterMap {
                 }
             }
         }
+
+        //更新链路状态
+        this.routers.forEach(router => {
+            router.pushLSDB()
+        })
 
         //绘图
         this.zrenderInst.clear()
