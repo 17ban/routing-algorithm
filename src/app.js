@@ -70,14 +70,14 @@ class Router {
             neighbour.router.updateLSDB(this.LSDB, this)
         })
     }
-    updateLSDB(LSDB, from) {
+    updateLSDB(neighbourLSDB, from) {
         let updatedFlag = false
 
         //查找到更新路由的距离
         let distToFrom = this.neighbours.find(n => n.router === from).dist
 
-        //更新记录
-        LSDB.forEach(stateItem => {
+        //更新 LSDB
+        neighbourLSDB.forEach(stateItem => {
             let targetRouter = stateItem[0]
             if(targetRouter === this) {
                 return
@@ -111,7 +111,7 @@ class Router {
             }
         })
 
-        //若有更新，则向邻居路由推送新状态
+        //若 LSDB 有更新，则向邻居路由推送新 LSDB
         if(updatedFlag) {
             this.pushLSDB()
         }
