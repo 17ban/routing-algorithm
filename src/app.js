@@ -59,31 +59,31 @@ class Router {
         this.y = y
     }
 
-    LSDB = []
+    routeTable = []
     neighbours = []
     addNeighbour(neighbourRouter, dist) {
         this.neighbours.push(new Neighbour(neighbourRouter, dist))
-        this.LSDB.push([neighbourRouter, dist, neighbourRouter])
+        this.routeTable.push([neighbourRouter, dist, neighbourRouter])
     }
-    pushLSDB() {
+    pushRouteTable() {
         this.neighbours.forEach(neighbour => {
-            neighbour.router.updateLSDB(this.LSDB, this)
+            neighbour.router.updateRouteTable(this.routeTable, this)
         })
     }
-    updateLSDB(neighbourLSDB, from) {
+    updateRouteTable(neighbourrouteTable, from) {
         let updatedFlag = false
 
         //查找到更新路由的距离
         let distToFrom = this.neighbours.find(n => n.router === from).dist
 
-        //更新 LSDB
-        neighbourLSDB.forEach(stateItem => {
+        //更新 routeTable
+        neighbourrouteTable.forEach(stateItem => {
             let targetRouter = stateItem[0]
             if(targetRouter === this) {
                 return
             }
             
-            let targetStateItem = this.LSDB.find(oldStateItem => oldStateItem[0] === targetRouter)
+            let targetStateItem = this.routeTable.find(oldStateItem => oldStateItem[0] === targetRouter)
             //目标路由已有记录
             if(targetStateItem) {
                 let newDist = stateItem[1] + distToFrom
@@ -106,21 +106,21 @@ class Router {
             //目标路由尚无记录
             else {
                 //新建记录
-                this.LSDB.push([targetRouter, stateItem[1] + distToFrom, from])
+                this.routeTable.push([targetRouter, stateItem[1] + distToFrom, from])
                 updatedFlag = true
             }
         })
 
-        //若 LSDB 有更新，则向邻居路由推送新 LSDB
+        //若 routeTable 有更新，则向邻居路由推送新 routeTable
         if(updatedFlag) {
-            this.pushLSDB()
+            this.pushRouteTable()
         }
     }
     routeTo(targetRouter) {
         if(targetRouter === this) {
             return [this]
         }
-        let stateItem = this.LSDB.find(i => i[0] === targetRouter)
+        let stateItem = this.routeTable.find(i => i[0] === targetRouter)
         if(!stateItem) {
             return []
         }
@@ -166,7 +166,7 @@ class RouterMap {
 
         //更新链路状态
         this.routers.forEach(router => {
-            router.pushLSDB()
+            router.pushRouteTable()
         })
 
 
