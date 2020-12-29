@@ -70,65 +70,53 @@ class Router {
             neighbour.router.updateRouteTable(this.routeTable, this)
         })
     }
-    updateRouteTable(neighbourrouteTable, from) {
+    updateRouteTable(neighbourRouteTable, from) {
+        //标记 routeTable 是否已更新
         let updatedFlag = false
-
-        //查找到更新路由的距离
+        //获取与来源邻居之间的距离
         let distToFrom = this.neighbours.find(n => n.router === from).dist
-
-        //更新 routeTable
-        neighbourrouteTable.forEach(stateItem => {
-            let targetRouter = stateItem[0]
-            if(targetRouter === this) {
+        //尝试更新 routeTable
+        neighbourRouteTable.forEach(routeItem => {
+            let targetRouter = routeItem[0]
+            let newDist = routeItem[1] + distToFrom
+            if(targetRouter === this) return
+            let targetRouteItem = this.routeTable.find(i => i[0] === targetRouter)
+            //若目标路由尚无记录
+            if(!targetRouteItem) {
+                //新建记录
+                this.routeTable.push([targetRouter, routeItem[1] + distToFrom, from])
+                updatedFlag = true
                 return
             }
-            
-            let targetStateItem = this.routeTable.find(oldStateItem => oldStateItem[0] === targetRouter)
-            //目标路由已有记录
-            if(targetStateItem) {
-                let newDist = stateItem[1] + distToFrom
-                //下一跳相同
-                if(targetStateItem[2] === from) {
-                    //若距离发生改变，更新距离
-                    if(Math.abs(targetStateItem[1] - newDist) > 1e-9) {
-                        targetStateItem[1] = newDist
-                        updatedFlag = true
-                    }
-                }
-                //下一跳不同，且新状态可以使距离缩短时
-                else if(newDist < targetStateItem[1]) {
-                    //更新距离与下一跳
-                    targetStateItem[1] = newDist
-                    targetStateItem[2] = from
+            //下一跳相同
+            if(targetRouteItem[2] === from) {
+                //若距离发生改变，更新距离
+                if(Math.abs(targetRouteItem[1] - newDist) > 1e-9) {
+                    targetRouteItem[1] = newDist
                     updatedFlag = true
                 }
             }
-            //目标路由尚无记录
-            else {
-                //新建记录
-                this.routeTable.push([targetRouter, stateItem[1] + distToFrom, from])
+            //下一跳不同，且新状态可以使距离缩短时
+            else if(newDist < targetRouteItem[1]) {
+                //更新距离与下一跳
+                targetRouteItem[1] = newDist
+                targetRouteItem[2] = from
                 updatedFlag = true
             }
         })
-
         //若 routeTable 有更新，则向邻居路由推送新 routeTable
-        if(updatedFlag) {
-            this.pushRouteTable()
-        }
+        if(updatedFlag) this.pushRouteTable()
     }
     routeTo(targetRouter) {
-        if(targetRouter === this) {
+        if(targetRouter === this)
             return [this]
-        }
-        let stateItem = this.routeTable.find(i => i[0] === targetRouter)
-        if(!stateItem) {
+        let routeItem = this.routeTable.find(i => i[0] === targetRouter)
+        if(!routeItem)
             return []
-        }
-        let route = [this]
-        route.push(...stateItem[2].routeTo(targetRouter))
-        return route
+        return [this, ...routeItem[2].routeTo(targetRouter)]
     }
 }
+
 class RouterMap {
     routers = []
 
