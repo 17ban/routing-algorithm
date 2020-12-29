@@ -1,3 +1,44 @@
+//全局状态
+let status = 0
+let startRouter = null
+let endRouter = null
+let route = null
+
+function updateDOM(target) {
+    if(target === 'startRouter') {
+        let el = document.querySelector("#start-router-digest")
+        if(!startRouter) {
+            el.innerHTML = '尚未选择'
+            return
+        }
+        el.innerHTML = 
+            `Router Name: ${startRouter.name}<br>` + 
+            `x: ${startRouter.x}<br>` +
+            `y: ${startRouter.y}<br>`
+    } else if(target === 'endRouter') {
+        let el = document.querySelector("#end-router-digest")
+        if(!endRouter) {
+            el.innerHTML = '尚未选择'
+            return
+        }
+        el.innerHTML = 
+            `Router Name: ${endRouter.name}<br>` + 
+            `x: ${endRouter.x}<br>` +
+            `y: ${endRouter.y}<br>`
+    } else if(target === 'route') {
+        let el = document.querySelector("#route-digest")
+        if(!route) {
+            el.innerHTML = '请选择起点与终点'
+            return
+        }
+        if(route.length === 0) {
+            el.innerHTML = '起点与终点之间不存在通路'
+            return
+        }
+        el.innerHTML = route.map(r => r.name)
+    }
+}
+
 class Neighbour {
     constructor(router, dist) {
         this.router = router
@@ -14,15 +55,15 @@ class Router {
         this.y = y
     }
 
-    linkStateDataBase = []
+    LSDB = []
     neighbours = []
     addNeighbour(neighbourRouter, dist) {
         this.neighbours.push(new Neighbour(neighbourRouter, dist))
-        this.linkStateDataBase.push([neighbourRouter, dist, neighbourRouter])
+        this.LSDB.push([neighbourRouter, dist, neighbourRouter])
     }
     pushLSDB() {
         this.neighbours.forEach(neighbour => {
-            neighbour.router.updateLSDB(this.linkStateDataBase, this)
+            neighbour.router.updateLSDB(this.LSDB, this)
         })
     }
     updateLSDB(LSDB, from) {
@@ -38,7 +79,7 @@ class Router {
                 return
             }
             
-            let targetStateItem = this.linkStateDataBase.find(oldStateItem => oldStateItem[0] === targetRouter)
+            let targetStateItem = this.LSDB.find(oldStateItem => oldStateItem[0] === targetRouter)
             //目标路由已有记录
             if(targetStateItem) {
                 let newDist = stateItem[1] + distToFrom
@@ -61,24 +102,21 @@ class Router {
             //目标路由尚无记录
             else {
                 //新建记录
-                this.linkStateDataBase.push([targetRouter, stateItem[1] + distToFrom, from])
+                this.LSDB.push([targetRouter, stateItem[1] + distToFrom, from])
                 updatedFlag = true
             }
         })
 
         //若有更新，则向邻居路由推送新状态
         if(updatedFlag) {
-            //console.log(`${this.name} updated.`)
             this.pushLSDB()
-        } else {
-            //console.log(`${this.name} LSDB clean.`)
         }
     }
     routeTo(targetRouter) {
         if(targetRouter === this) {
             return [this]
         }
-        let stateItem = this.linkStateDataBase.find(i => i[0] === targetRouter)
+        let stateItem = this.LSDB.find(i => i[0] === targetRouter)
         if(!stateItem) {
             return []
         }
@@ -87,11 +125,6 @@ class Router {
         return route
     }
 }
-
-function geometryDist(r1, r2) {
-    return Math.sqrt((r1.x - r2.x) ** 2 + (r1.y - r2.y) ** 2)
-}
-
 class RouterMap {
     routers = []
 
@@ -134,10 +167,6 @@ class RouterMap {
 
 
         //绘图相关状态
-        let status = 0
-        let startRouter = null
-        let endRouter = null
-        let route = null
         const circularMap = {}
         const lineMap = {}
 
@@ -175,20 +204,22 @@ class RouterMap {
             }
             //处理 Router 点击事件
             circular.on('click', (event) => {
-                console.info(
-                    `Router Name: ${router.name}\n` + 
-                    `x: ${router.x}\n` +
-                    `y: ${router.y}\n`
-                )
                 if(status === 0) {
+                    //更新状态
                     status = 1
                     startRouter = router
+                    //起点高亮显示
                     circular.turnRed()
+                    //更新DOM
+                    updateDOM('startRouter')
                 } else if(status === 1) {
+                    //更新状态
                     status = 2
                     endRouter = router
-                    circularMap[startRouter.name].turnGreen()
                     route = startRouter.routeTo(endRouter)
+                    //先取消对起点的高亮显示
+                    circularMap[startRouter.name].turnGreen()
+                    //再对路径上所有的点与线进行高亮显示
                     for(let i = 0; i < route.length; i++) {
                         let r = route[i]
                         let next = route[i + 1]
@@ -197,11 +228,11 @@ class RouterMap {
                             lineMap[`${r.name}-${next.name}`].turnRed()
                         }
                     }
-                    route.forEach(r => {
-                        circularMap[r.name].turnRed()
-                    })
+                    //更新DOM
+                    updateDOM('endRouter')
+                    updateDOM('route')
                 } else if(status === 2) {
-                    status = 1
+                    //高亮路径恢复为普通颜色
                     for(let i = 0; i < route.length; i++) {
                         let r = route[i]
                         let next = route[i + 1]
@@ -210,8 +241,17 @@ class RouterMap {
                             lineMap[`${r.name}-${next.name}`].turnGreen()
                         }
                     }
-                    startRouter = router
+                    //再对新的起点进行高亮显示
                     circular.turnRed()
+                    //更新状态
+                    status = 1
+                    endRouter = null
+                    route = null
+                    startRouter = router
+                    //更新DOM
+                    updateDOM('startRouter')
+                    updateDOM('endRouter')
+                    updateDOM('route')
                 }
             })
             circularMap[router.name] = circular
@@ -267,3 +307,19 @@ const rm = new RouterMap('#main-canvas')
 //初始化 RouterMap
 rm.init()
 
+function geometryDist(r1, r2) {
+    return Math.sqrt((r1.x - r2.x) ** 2 + (r1.y - r2.y) ** 2)
+}
+
+window.reset = () => {
+    //重置状态
+    status = 0
+    startRouter = null
+    endRouter = null
+    route = null
+    rm.init()
+    //更新DOM
+    updateDOM('startRouter')
+    updateDOM('endRouter')
+    updateDOM('route')
+}

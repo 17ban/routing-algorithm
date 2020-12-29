@@ -9,7 +9,35 @@
     <div id="main-view">
         <canvas id="main-canvas" width="500" height="500"></canvas>
         <br>
-        <button onclick="rm.init();">随机重置</button>
+        <button onclick="reset();">随机重置</button>
+
+        <div id="start-router">
+            <p>
+                起点：
+            </p>
+            <p id="start-router-digest">
+                尚未选择
+            </p>
+        </div>
+
+        <div id="end-router">
+            <p>
+                终点：
+            </p>
+            <p id="end-router-digest">
+                尚未选择
+            </p>
+        </div>
+
+        <div id="route">
+            <p>
+                最优路径：
+            </p>
+            <p id="route-digest">
+                请选择起点与终点
+            </p>
+        </div>
+
     </div>
     
     <style>
