@@ -120,20 +120,20 @@ class LSRouter {
 
     routeTo(targetRouter) {
         //初始化
-        const distMap = new Map()
+        const routeMap = new Map()
         let routerSet = new Set(this.routerSet)
         for(let router of routerSet) {
-            distMap.set(router, { dist: Infinity, prev: null })
+            routeMap.set(router, { dist: Infinity, prev: null })
         }
 
-        //使用 Dijsktra 算法生成一个到各个 Router 的距离的表 distMap
+        //使用 Dijsktra 算法生成一个到各个 Router 的路由表
         let currentRouter = this
         let currentDist = 0
         while(routerSet.size > 0) {
             let min = Infinity
             let closeRouter = null
             for(let r of routerSet) {
-                let mapItem = distMap.get(r)
+                let mapItem = routeMap.get(r)
                 let dbItem = this.LSDB[`${currentRouter.name}-${r.name}`]
                 if(dbItem) {
                     let newDist = currentDist + dbItem[2]
@@ -147,22 +147,22 @@ class LSRouter {
                     closeRouter = r
                 }
             }
-            currentDist = distMap.get(closeRouter).dist
+            currentDist = routeMap.get(closeRouter).dist
             currentRouter = closeRouter
             routerSet.delete(closeRouter)
         }
 
         //目标路由不可达时返回空数组
-        let distItem = distMap.get(targetRouter)
-        if(!distItem) {
+        let routeItem = routeMap.get(targetRouter)
+        if(!routeItem) {
             return []
         }
 
         //生成最优路径并返回
         let route = [targetRouter]
-        while(distItem.prev !== this) {
-            route.push(distItem.prev)
-            distItem = distMap.get(distItem.prev)
+        while(routeItem.prev !== this) {
+            route.push(routeItem.prev)
+            routeItem = routeMap.get(routeItem.prev)
         }
         route.push(this)
         route.reverse()
