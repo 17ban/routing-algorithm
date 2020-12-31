@@ -1,5 +1,5 @@
 /**
- * 路由类
+ * DV路由类
  */
 class DVRouter {
     constructor(name, x, y) {
@@ -76,6 +76,9 @@ class DVRouter {
     }
 }
 
+/**
+ * LS路由类
+ */
 class LSRouter {
     constructor(name, x, y) {
         this.name = name
