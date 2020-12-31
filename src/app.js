@@ -85,29 +85,89 @@ class LSRouter {
 
     neighbours = []
     LSDB = {}
+    firstLSP = {}
+    routerSet = new Set()
+    recvedLSP = new Map()
     
     addNeighbour(neighbourRouter, dist) {
         this.neighbours.push({ router: neighbourRouter, dist })
-        this.LSDB[`${this.name}-${neighbourRouter.name}`] = dist
-        this.LSDB[`${neighbourRouter.name}-${this.name}`] = dist
+        this.firstLSP[`${this.name}-${neighbourRouter.name}`] = [this, neighbourRouter, dist]
+        this.firstLSP[`${neighbourRouter.name}-${this.name}`] = [neighbourRouter, this, dist]
     }
 
-    sendLSDB() {
+    sendLSP(LSP) {
         this.neighbours.forEach(neighbour => {
-            neighbour.router.updateLSDB(this.LSDB, this)
+            neighbour.router.recvLSP(LSP)
         })
     }
 
-    updateLSDB(LSDB, from) {
-        Object.assign(this.LSDB, LSDB)
+    recvLSP(LSP) {
+        if(this.recvedLSP.has(LSP)) {
+            this.recvedLSP.set(LSP, 1 + this.recvedLSP.get(LSP))
+        } else {
+            this.recvedLSP.set(LSP, 1)
+            Object.assign(this.LSDB, LSP)
+            for(let key of Object.keys(LSP)) {
+                this.routerSet.add(LSP[key][0])
+                this.routerSet.add(LSP[key][1])
+            }
+            this.sendLSP(LSP)
+        }
     }
 
     routeTo(targetRouter) {
-        return []
+        //初始化
+        const distMap = new Map()
+        let routerSet = new Set(this.routerSet)
+        for(let router of routerSet) {
+            distMap.set(router, { dist: Infinity, prev: null })
+        }
+
+        //使用 Dijsktra 算法生成一个到各个 Router 的距离的表 distMap
+        let currentRouter = this
+        let currentDist = 0
+        while(routerSet.size > 0) {
+            let min = Infinity
+            let closeRouter = null
+            for(let r of routerSet) {
+                let mapItem = distMap.get(r)
+                let dbItem = this.LSDB[`${currentRouter.name}-${r.name}`]
+                if(dbItem) {
+                    let newDist = currentDist + dbItem[2]
+                    if(newDist < mapItem.dist) {
+                        mapItem.dist = newDist
+                        mapItem.prev = currentRouter
+                    }
+                }
+                if(mapItem.dist < min) {
+                    min = mapItem.dist
+                    closeRouter = r
+                }
+            }
+            currentDist = distMap.get(closeRouter).dist
+            currentRouter = closeRouter
+            routerSet.delete(closeRouter)
+        }
+
+        //目标路由不可达时返回空数组
+        let distItem = distMap.get(targetRouter)
+        if(!distItem) {
+            return []
+        }
+
+        //生成最优路径并返回
+        let route = [targetRouter]
+        while(distItem.prev !== this) {
+            route.push(distItem.prev)
+            distItem = distMap.get(distItem.prev)
+        }
+        route.push(this)
+        route.reverse()
+        return route
     }
 
     start() {
-        this.sendLSDB()
+        this.recvLSP(this.firstLSP)
     }
 }
 
