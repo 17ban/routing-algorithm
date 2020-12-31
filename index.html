@@ -9,25 +9,31 @@
     <div id="main-view">
         <canvas id="main-canvas" width="500" height="500"></canvas>
         <br>
-        <button onclick="init();" style="margin-top: 20px;">随机重置</button>
+        <button onclick="init('DV');" style="margin-top: 20px;">随机重置（使用DV算法）</button>
+        <button onclick="init('LS');" style="margin-top: 20px;">随机重置（使用LS算法）</button>
     </div>
 
     <div id="sub-view">
-        <div id="start-router">
+        <div class="digest">
+            <strong>当前路由算法：</strong><br>
+            <p id="router-type-digest"></p>
+        </div>
+
+        <div class="digest">
             <strong>起点：</strong><br>
             <p id="start-router-digest">
                 尚未选择
             </p>
         </div>
 
-        <div id="end-router">
+        <div class="digest">
             <strong>终点：</strong><br>
             <p id="end-router-digest">
                 尚未选择
             </p>
         </div>
 
-        <div id="route">
+        <div class="digest">
             <strong>最优路径：</strong><br>
             <p id="route-digest">
                 请选择起点与终点
@@ -45,9 +51,9 @@
         #main-canvas {
             background-color: rgb(213, 238, 255);
         }
-        #start-router, #end-router, #route {
-            height: 120px;
-            margin: 30px 10px;
+        .digest {
+            height: 110px;
+            margin: 20px 10px;
         }
     </style>
     <script src="./src/app.js"></script>

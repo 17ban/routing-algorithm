@@ -1,7 +1,7 @@
 /**
  * 路由类
  */
-class Router {
+class DVRouter {
     constructor(name, x, y) {
         this.name = name
         this.x = x
@@ -70,6 +70,45 @@ class Router {
             return []
         return [this, ...routeItem[2].routeTo(targetRouter)]
     }
+
+    start() {
+        this.sendRouteTable()
+    }
+}
+
+class LSRouter {
+    constructor(name, x, y) {
+        this.name = name
+        this.x = x
+        this.y = y
+    }
+
+    neighbours = []
+    LSDB = {}
+    
+    addNeighbour(neighbourRouter, dist) {
+        this.neighbours.push({ router: neighbourRouter, dist })
+        this.LSDB[`${this.name}-${neighbourRouter.name}`] = dist
+        this.LSDB[`${neighbourRouter.name}-${this.name}`] = dist
+    }
+
+    sendLSDB() {
+        this.neighbours.forEach(neighbour => {
+            neighbour.router.updateLSDB(this.LSDB, this)
+        })
+    }
+
+    updateLSDB(LSDB, from) {
+        Object.assign(this.LSDB, LSDB)
+    }
+
+    routeTo(targetRouter) {
+        return []
+    }
+
+    start() {
+        this.sendLSDB()
+    }
 }
 
 
@@ -84,6 +123,7 @@ const zrenderInst = zrender.init(document.querySelector('#main-canvas'))
  */
 const globalState = new Proxy({
     status: 0,
+    routerType: null,
     routers: [],
     startRouter: null,
     endRouter: null,
@@ -123,6 +163,9 @@ const globalState = new Proxy({
                 return
             }
             el.innerHTML = obj.route.map(r => r.name).join(' -> ')
+        } else if(prop === 'routerType') {
+            let el = document.querySelector("#router-type-digest")
+            el.innerHTML = value
         }
         return true
     }
@@ -284,14 +327,27 @@ const useCanvas = () => {
     })
 }
 
+
+
 /**
  * 初始化函数
+ * @param {string} routerType 路由类型
  * @param {Number} routerAmount 要生成的路由数量
  * @param {Number} radius 判定邻接路由的半径
  */
-const init = (routerAmount = 50, radius = 100) => {
+const init = (routerType, routerAmount = 50, radius = 100) => {
+    //选择使用 DV 路由或 LS 路由
+    let Router = null
+    if(routerType === 'DV') {
+        Router = DVRouter
+    } else if(routerType === 'LS') {
+        Router = LSRouter
+    } else {
+        throw new Error('Wrong router type.')
+    }
     //初始化全局状态
     globalState.status = 0
+    globalState.routerType = routerType
     globalState.routers = []
     globalState.startRouter = null
     globalState.endRouter = null
@@ -317,7 +373,7 @@ const init = (routerAmount = 50, radius = 100) => {
     }
     //开始生成路由表
     globalState.routers.forEach(router => {
-        router.sendRouteTable()
+        router.start()
     })
     //绘图
     useCanvas()
@@ -326,4 +382,4 @@ const init = (routerAmount = 50, radius = 100) => {
 
 
 //执行初始化函数，开始运行
-init()
+init('DV')
