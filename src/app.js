@@ -107,25 +107,28 @@ class LSRouter {
     recvLSP(LSP) {
         if(this.recvedLSP.has(LSP)) {
             this.recvedLSP.set(LSP, 1 + this.recvedLSP.get(LSP))
-        } else {
-            this.recvedLSP.set(LSP, 1)
-            Object.assign(this.LSDB, LSP)
-            for(let key of Object.keys(LSP)) {
-                this.routerSet.add(LSP[key][0])
-                this.routerSet.add(LSP[key][1])
-            }
-            this.sendLSP(LSP)
+            return 
         }
+        this.recvedLSP.set(LSP, 1)
+        Object.assign(this.LSDB, LSP)
+        for(let key of Object.keys(LSP)) {
+            this.routerSet.add(LSP[key][0])
+            this.routerSet.add(LSP[key][1])
+        }
+        //标志当前 routeMap 已过期
+        this.isOldRouteMap = true
+        this.sendLSP(LSP)
     }
 
-    routeTo(targetRouter) {
+    routeMap = new Map()
+    isOldRouteMap = true
+    buildRouteMap() {
         //初始化
-        const routeMap = new Map()
+        this.routeMap.clear()
         let routerSet = new Set(this.routerSet)
         for(let router of routerSet) {
-            routeMap.set(router, { dist: Infinity, prev: null })
+            this.routeMap.set(router, { dist: Infinity, prev: null })
         }
-
         //使用 Dijsktra 算法生成一个到各个 Router 的路由表
         let currentRouter = this
         let currentDist = 0
@@ -133,7 +136,7 @@ class LSRouter {
             let min = Infinity
             let closeRouter = null
             for(let r of routerSet) {
-                let mapItem = routeMap.get(r)
+                let mapItem = this.routeMap.get(r)
                 let dbItem = this.LSDB[`${currentRouter.name}-${r.name}`]
                 if(dbItem) {
                     let newDist = currentDist + dbItem[2]
@@ -147,22 +150,29 @@ class LSRouter {
                     closeRouter = r
                 }
             }
-            currentDist = routeMap.get(closeRouter).dist
+            currentDist = this.routeMap.get(closeRouter).dist
             currentRouter = closeRouter
             routerSet.delete(closeRouter)
         }
+        //标志当前 routeMap 已是最新
+        this.isOldRouteMap = false
+    }
 
+    routeTo(targetRouter) {
+        //检查 routeMap 是否过期，若过期则构建新的 routeMap
+        if(this.isOldRouteMap) {
+            this.buildRouteMap()
+        }
         //目标路由不可达时返回空数组
-        let routeItem = routeMap.get(targetRouter)
+        let routeItem = this.routeMap.get(targetRouter)
         if(!routeItem) {
             return []
         }
-
         //生成最优路径并返回
         let route = [targetRouter]
         while(routeItem.prev !== this) {
             route.push(routeItem.prev)
-            routeItem = routeMap.get(routeItem.prev)
+            routeItem = this.routeMap.get(routeItem.prev)
         }
         route.push(this)
         route.reverse()
