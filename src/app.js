@@ -192,7 +192,7 @@ class LSRouter {
 const zrenderInst = zrender.init(document.querySelector('#main-canvas'))
 
 /**
- * 全局状态，使用 Proxy 代理
+ * 全局状态，使用 Proxy 代理以实现 DOM 的响应式变化
  */
 const globalState = new Proxy({
     status: 0,
@@ -203,7 +203,7 @@ const globalState = new Proxy({
     route: null,
 }, {
     set: function(obj, prop, value) {
-        //startRouter, endRouter 和 route 被更新的同时也更新 DOM
+        //startRouter, endRouter, route, routerType 被更新的同时也更新 DOM
         obj[prop] = value
         if(prop === 'startRouter') {
             let el = document.querySelector("#start-router-digest")
